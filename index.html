@@ -64,7 +64,7 @@
             border: 1px solid var(--border-color); border-radius: 16px; padding: 20px;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); margin-bottom: 20px;
         }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .card-title { font-size: 1.1rem; color: var(--text-muted); }
         .card-value { font-size: 1.8rem; font-weight: 800; }
 
@@ -83,10 +83,20 @@
         .btn-secondary { background: rgba(255,255,255,0.1); color: var(--text-main); }
 
         .recipe-item-row {
-            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 40px; gap: 10px; align-items: center;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr 40px; gap: 10px; align-items: center;
             background: rgba(15, 23, 42, 0.4); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border-color);
         }
         .saved-meal-card { background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 15px; margin-bottom: 10px; }
+
+        /* People management panel in Step 2 */
+        .people-manager-box {
+            background: rgba(15, 23, 42, 0.6); border: 1px solid var(--accent-purple);
+            border-radius: 12px; padding: 15px; margin-bottom: 20px;
+        }
+        .person-badge-row {
+            display: flex; align-items: center; gap: 10px; background: rgba(30, 41, 59, 0.8);
+            padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 8px; flex-wrap: wrap;
+        }
 
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; font-size: 0.9rem; }
@@ -221,20 +231,21 @@
             <div class="step-wizard-header">
                 <div class="step-node active" id="node-step-1">
                     <div class="step-number">1</div>
-                    <span>إدخال الوجبات والوصفات</span>
+                    <span>إدخال الوجبات والوصفات (كميتك الأساسية)</span>
                 </div>
                 <i class="fa-solid fa-chevron-left" style="color: var(--text-muted);"></i>
                 <div class="step-node" id="node-step-2">
                     <div class="step-number">2</div>
-                    <span>إجمالي المشتريات المطلوبة</span>
+                    <span>تحديد الأشخاص وإجمالي المشتريات</span>
                 </div>
             </div>
 
+            <!-- STEP 1: MEALS & RECIPES (YOUR BASE QUANTITIES ONLY) -->
             <div id="wizard-step-1" class="wizard-step-panel active">
                 <div class="card">
                     <h3><i class="fa-solid fa-utensils" style="color: var(--accent-amber)"></i> إضافة أو تعديل الوجبة والوصفات</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
-                        قم بإدخال اسم الوجبة ومكوناتها يدوياً، مع تحديد كميتك ونسبة الشخص الثاني (%)، وستحفظ الوجبات مشفّرة في دليلك الخاص ولن تُحذف عند مسح البيانات المالية.
+                        قم بإدخال اسم الوجبة ومكوناتها بالكميات المناسبة لك وحدك، وفي الخطوة التالية يمكنك إضافة أي عدد من الأشخاص وتحديد النسبة المئوية لكل شخص.
                     </p>
 
                     <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); padding: 18px; border-radius: 12px; margin-bottom: 20px;">
@@ -268,15 +279,38 @@
 
                     <div style="margin-top: 25px; display: flex; justify-content: flex-end;">
                         <button class="btn btn-amber" onclick="goToWizardStep(2)">
-                            الخطوة التالية: حساب المشتريات والتكلفة <i class="fa-solid fa-arrow-left"></i>
+                            الخطوة التالية: تحديد الأشخاص وحساب المشتريات <i class="fa-solid fa-arrow-left"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
+            <!-- STEP 2: PEOPLE CONTROL & TOTAL CALCULATION -->
             <div id="wizard-step-2" class="wizard-step-panel">
                 <div class="card">
-                    <h3><i class="fa-solid fa-calculator" style="color: var(--accent-blue)"></i> تجميع وحساب الكميات المشتريات والتكلفة لشخصين</h3>
+                    <h3><i class="fa-solid fa-calculator" style="color: var(--accent-blue)"></i> تجميع وحساب الكميات المشتريات والتكلفة</h3>
+
+                    <!-- PEOPLE & PERCENTAGE CONTROL PANEL -->
+                    <div class="people-manager-box" style="margin-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <h4 style="color: var(--accent-purple);"><i class="fa-solid fa-users"></i> إدارة الأشخاص والنسب المئوية</h4>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">الشخص الأساسي (أنت = 100%)، أضف أشخاصاً آخرين وحدد النسبة المئوية لكل شخص من إجمالي كميتك.</span>
+                            </div>
+                            <button class="btn btn-purple" onclick="addPerson()">
+                                <i class="fa-solid fa-user-plus"></i> إضافة شخص آخر
+                            </button>
+                        </div>
+
+                        <div style="margin-top: 10px;">
+                            <div class="person-badge-row" style="border-right: 4px solid var(--accent-green);">
+                                <i class="fa-solid fa-user-check" style="color: var(--accent-green);"></i>
+                                <strong style="flex: 1;">الشخص الأساسي (أنت)</strong>
+                                <span style="color: var(--accent-green); font-weight: bold;">100% (أساسي)</span>
+                            </div>
+                            <div id="extra-people-container"></div>
+                        </div>
+                    </div>
 
                     <div class="grid-2" style="margin-top: 15px;">
                         <div class="form-group">
@@ -303,7 +337,7 @@
                             <thead>
                                 <tr>
                                     <th>اسم المكون / الوصفة</th>
-                                    <th>الكميات (أنت + الثاني = الإجمالي)</th>
+                                    <th>توزيع الكميات وإجمالي المطلوب</th>
                                     <th>سعر الكيلو / الوحدة</th>
                                     <th>التكلفة التقديرية الإجمالية</th>
                                 </tr>
@@ -412,7 +446,7 @@
         const AUTH_KEY = 'masar_auth';
         const AUTO_LOCK_MS = 5 * 60 * 1000;
 
-        let state = { salary: 0, startDate: '', days: 30, transactions: [] };
+        let state = { salary: 0, startDate: '', days: 30, transactions: [], extraPeople: [] };
         let mealsData = [];
         let db = null;
         let chartInstance = null;
@@ -569,7 +603,6 @@
                 name: String(r.name ?? '').slice(0, 100),
                 qty: num(r.qty),
                 unit: VALID_UNITS.includes(r.unit) ? r.unit : 'جرام',
-                secondPersonPct: r.secondPersonPct !== undefined ? num(r.secondPersonPct) : 80,
                 unitPrice: num(r.unitPrice)
             })).filter(r => r.name && r.qty > 0) : [];
             return { id: num(m.id) || Date.now(), name: String(m.name ?? '').slice(0, 100), recipes };
@@ -618,6 +651,7 @@
         // ---------- State (encrypted localStorage) ----------
         function normalizeState(s) {
             const txs = Array.isArray(s?.transactions) ? s.transactions : [];
+            const people = Array.isArray(s?.extraPeople) ? s.extraPeople : [];
             return {
                 salary: num(s?.salary),
                 startDate: String(s?.startDate ?? ''),
@@ -629,6 +663,11 @@
                     amount: num(t.amount),
                     category: String(t.category ?? ''),
                     desc: String(t.desc ?? '').slice(0, 200)
+                })),
+                extraPeople: people.map(p => ({
+                    id: num(p.id) || Date.now(),
+                    name: String(p.name ?? 'شخص إضافي').slice(0, 50),
+                    pct: num(p.pct) || 80
                 }))
             };
         }
@@ -650,6 +689,7 @@
             document.getElementById('setup-salary').value = state.salary || 0;
             document.getElementById('setup-start-date').value = state.startDate || new Date().toISOString().split('T')[0];
             document.getElementById('setup-days').value = state.days || 30;
+            renderExtraPeople();
         }
 
         async function persistState() {
@@ -701,7 +741,10 @@
                 if (i === stepNum) node.classList.add('active');
                 else if (i < stepNum) node.classList.add('completed');
             }
-            if (stepNum === 2) calculateTotals();
+            if (stepNum === 2) {
+                renderExtraPeople();
+                calculateTotals();
+            }
         }
 
         // ---------- Notifications ----------
@@ -775,18 +818,17 @@
             setInterval(() => triggerExpenseReminder(false), 4 * 60 * 60 * 1000);
         }
 
-        // ---------- Meals & recipes ----------
-        function addRecipeRow(name = '', qty = '', unit = 'جرام', unitPrice = '', secondPersonPct = '80') {
+        // ---------- Meals & recipes (Step 1 - Your Base Quantities) ----------
+        function addRecipeRow(name = '', qty = '', unit = 'جرام', unitPrice = '') {
             const container = document.getElementById('recipe-inputs-container');
             const rowId = Date.now() + Math.random().toString(36).substring(2, 5);
             const opts = VALID_UNITS.map(u => `<option value="${u}" ${unit === u ? 'selected' : ''}>${u}</option>`).join('');
             const html = `
                 <div class="recipe-item-row" id="row-${rowId}">
                     <input type="text" class="form-control recipe-name" maxlength="100" placeholder="المكون (طماطم، أرز...)" value="${escapeHTML(name)}">
-                    <input type="number" class="form-control recipe-qty" placeholder="كميتك" step="any" value="${escapeHTML(qty)}">
+                    <input type="number" class="form-control recipe-qty" placeholder="الكمية (لك)" step="any" value="${escapeHTML(qty)}">
                     <select class="form-control recipe-unit">${opts}</select>
-                    <input type="number" class="form-control recipe-pct" placeholder="نسبة الـ 2 (%)" step="any" value="${escapeHTML(secondPersonPct)}" title="نسبة الشخص الثاني من كميتك">
-                    <input type="number" class="form-control recipe-price" placeholder="سعر الكيلو" step="any" value="${escapeHTML(unitPrice)}">
+                    <input type="number" class="form-control recipe-price" placeholder="سعر الكيلو/الوحدة (اختياري)" step="any" value="${escapeHTML(unitPrice)}">
                     <button class="btn btn-red" onclick="removeRecipeRow('${rowId}')" style="padding: 6px;"><i class="fa-solid fa-trash"></i></button>
                 </div>`;
             container.insertAdjacentHTML('beforeend', html);
@@ -808,9 +850,8 @@
                 const name = row.querySelector('.recipe-name').value.trim();
                 const qty = parseFloat(row.querySelector('.recipe-qty').value) || 0;
                 const unit = row.querySelector('.recipe-unit').value;
-                const secondPersonPct = parseFloat(row.querySelector('.recipe-pct').value) || 0;
                 const unitPrice = parseFloat(row.querySelector('.recipe-price').value) || 0;
-                if (name && qty > 0) recipes.push({ name, qty, unit, secondPersonPct, unitPrice });
+                if (name && qty > 0) recipes.push({ name, qty, unit, unitPrice });
             });
 
             if (recipes.length === 0) { alert('يرجى إضافة وصفة/مكون واحد على الأقل للوجبة!'); return; }
@@ -825,7 +866,7 @@
             document.getElementById('editing-meal-id').value = meal.id;
             document.getElementById('current-meal-name').value = meal.name;
             document.getElementById('recipe-inputs-container').innerHTML = '';
-            meal.recipes.forEach(r => addRecipeRow(r.name, r.qty, r.unit, r.unitPrice || '', r.secondPersonPct ?? 80));
+            meal.recipes.forEach(r => addRecipeRow(r.name, r.qty, r.unit, r.unitPrice || ''));
             document.getElementById('btn-save-meal').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> تحديث الوجبة';
             document.getElementById('btn-cancel-edit').style.display = 'inline-flex';
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -851,9 +892,8 @@
 
             mealsData.forEach((meal, idx) => {
                 const recipesText = meal.recipes.map(r => {
-                    const pct = r.secondPersonPct ?? 80;
-                    const priceInfo = r.unitPrice > 0 ? ` (سعر الكيلو: ${escapeHTML(r.unitPrice)} ج.م)` : '';
-                    return `${escapeHTML(r.qty)} ${escapeHTML(r.unit)} ${escapeHTML(r.name)} (نسبة الـ 2: ${pct}%)${priceInfo}`;
+                    const priceInfo = r.unitPrice > 0 ? ` (سعر الكيلو/الوحدة: ${escapeHTML(r.unitPrice)} ج.م)` : '';
+                    return `${escapeHTML(r.qty)} ${escapeHTML(r.unit)} ${escapeHTML(r.name)}${priceInfo}`;
                 }).join(' ، ');
 
                 container.insertAdjacentHTML('beforeend', `
@@ -877,7 +917,57 @@
             }
         }
 
-        // ---------- Calculations ----------
+        // ---------- Extra People Control (Step 2) ----------
+        async function addPerson() {
+            const personNum = state.extraPeople.length + 2;
+            state.extraPeople.push({
+                id: Date.now() + Math.floor(Math.random() * 100),
+                name: `شخص ${personNum}`,
+                pct: 80
+            });
+            renderExtraPeople();
+            calculateTotals();
+            await persistState();
+        }
+
+        async function updatePersonField(id, field, value) {
+            const p = state.extraPeople.find(item => item.id === id);
+            if (!p) return;
+            if (field === 'name') p.name = String(value).slice(0, 50);
+            if (field === 'pct') p.pct = num(value);
+            calculateTotals();
+            await persistState();
+        }
+
+        async function removePerson(id) {
+            state.extraPeople = state.extraPeople.filter(p => p.id !== id);
+            renderExtraPeople();
+            calculateTotals();
+            await persistState();
+        }
+
+        function renderExtraPeople() {
+            const container = document.getElementById('extra-people-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            state.extraPeople.forEach(p => {
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="person-badge-row" style="border-right: 4px solid var(--accent-purple);">
+                        <i class="fa-solid fa-user" style="color: var(--accent-purple);"></i>
+                        <input type="text" class="form-control" style="max-width: 150px;" value="${escapeHTML(p.name)}" onchange="updatePersonField(${num(p.id)}, 'name', this.value)" placeholder="اسم الشخص">
+                        <div style="display: flex; align-items: center; gap: 6px; margin-right: auto;">
+                            <label style="font-size: 0.8rem; color: var(--text-muted);">النسبة من كميتك (%):</label>
+                            <input type="number" class="form-control" style="width: 85px; text-align: center;" min="0" step="any" value="${escapeHTML(p.pct)}" oninput="updatePersonField(${num(p.id)}, 'pct', this.value)">
+                            <span style="color: var(--accent-amber); font-weight: bold;">%</span>
+                        </div>
+                        <button class="btn btn-red" onclick="removePerson(${num(p.id)})" style="padding: 6px 10px;" title="حذف الشخص"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `);
+            });
+        }
+
+        // ---------- Calculations (Step 2) ----------
         function calculateTotals() {
             const targetDays = parseInt(document.getElementById('plan-days').value) || 1;
             const tbody = document.getElementById('totals-table-body');
@@ -892,10 +982,11 @@
                 return;
             }
 
+            const totalPeopleCount = 1 + state.extraPeople.length;
             const fullCycles = Math.floor(targetDays / numMeals);
             const extraDays = targetDays % numMeals;
 
-            let infoMessage = `<i class="fa-solid fa-rotate"></i> <strong>نظام التدوير اليومي لشخصين:</strong> تغطية <strong>${targetDays} يوم</strong> من خلال <strong>${numMeals} وجبة</strong> مضافة.`;
+            let infoMessage = `<i class="fa-solid fa-rotate"></i> <strong>نظام التدوير اليومي (${totalPeopleCount} ${totalPeopleCount === 1 ? 'شخص' : 'أشخاص'}):</strong> تغطية <strong>${targetDays} يوم</strong> من خلال <strong>${numMeals} وجبة</strong>.`;
             if (fullCycles > 0) infoMessage += `<br>• تتكرر الـ ${numMeals} وجبة بالكامل <strong>${fullCycles} مرة</strong> (${fullCycles * numMeals} يوم).`;
             if (extraDays > 0) infoMessage += `<br>• ثم تتكرر أول <strong>${extraDays} وجبة</strong> من البداية لتكملة باقي الأيام.`;
             rotationInfo.innerHTML = infoMessage;
@@ -908,24 +999,33 @@
                 currentMeal.recipes.forEach(rec => {
                     const key = `${rec.name.trim().toLowerCase()}_${rec.unit.trim().toLowerCase()}`;
                     if (!totals[key]) {
-                        totals[key] = { 
-                            displayName: rec.name.trim(), 
-                            unit: rec.unit, 
-                            totalEslamQty: 0, 
-                            totalSecondQty: 0,
+                        totals[key] = {
+                            displayName: rec.name.trim(),
+                            unit: rec.unit,
+                            baseQty: 0,
+                            peopleBreakdown: {},
                             combinedQty: 0,
-                            unitPrice: rec.unitPrice || 0 
+                            unitPrice: rec.unitPrice || 0
                         };
+                        state.extraPeople.forEach(p => {
+                            totals[key].peopleBreakdown[p.id] = { name: p.name, qty: 0 };
+                        });
                     }
-                    
+
                     const eslamDaily = parseFloat(rec.qty) || 0;
-                    const pct = rec.secondPersonPct !== undefined ? parseFloat(rec.secondPersonPct) / 100 : 0.8;
-                    const secondDaily = eslamDaily * pct;
+                    totals[key].baseQty += eslamDaily;
+                    let dailySumForAll = eslamDaily;
 
-                    totals[key].totalEslamQty += eslamDaily;
-                    totals[key].totalSecondQty += secondDaily;
-                    totals[key].combinedQty += (eslamDaily + secondDaily);
+                    state.extraPeople.forEach(p => {
+                        const personDaily = eslamDaily * (num(p.pct) / 100);
+                        if (!totals[key].peopleBreakdown[p.id]) {
+                            totals[key].peopleBreakdown[p.id] = { name: p.name, qty: 0 };
+                        }
+                        totals[key].peopleBreakdown[p.id].qty += personDaily;
+                        dailySumForAll += personDaily;
+                    });
 
+                    totals[key].combinedQty += dailySumForAll;
                     if (rec.unitPrice > 0) totals[key].unitPrice = rec.unitPrice;
                 });
             }
@@ -940,6 +1040,16 @@
                 }
                 grandTotalPrice += itemTotalPrice;
 
+                // Build breakdown text if extra people exist
+                let breakdownHTML = '';
+                if (state.extraPeople.length > 0) {
+                    const extraParts = state.extraPeople.map(p => {
+                        const pQty = item.peopleBreakdown[p.id]?.qty || 0;
+                        return `<span style="color: var(--accent-purple);">${escapeHTML(p.name)}: ${Number(pQty.toFixed(1)).toLocaleString()}</span>`;
+                    }).join(' | ');
+                    breakdownHTML = `<div style="font-size: 0.8rem; margin-bottom: 3px;"><span style="color: var(--accent-blue);">أنت: ${item.baseQty.toLocaleString()}</span> | ${extraParts}</div>`;
+                }
+
                 const priceText = item.unitPrice > 0
                     ? `${item.unitPrice.toLocaleString()} ج.م / ${escapeHTML(item.unit === 'جرام' ? 'كيلو' : item.unit)}`
                     : '<span style="color:var(--text-muted);">غير محدد</span>';
@@ -951,9 +1061,8 @@
                     <tr>
                         <td><strong>${escapeHTML(item.displayName)}</strong></td>
                         <td>
-                            <span style="color: var(--accent-blue);">أنت: ${item.totalEslamQty.toLocaleString()}</span> | 
-                            <span style="color: var(--accent-purple);">الثاني: ${item.totalSecondQty.toLocaleString()}</span><br>
-                            <strong style="color: var(--accent-amber);">الإجمالي: ${item.combinedQty.toLocaleString()} ${escapeHTML(item.unit)}</strong>
+                            ${breakdownHTML}
+                            <strong style="color: var(--accent-amber);">الإجمالي: ${Number(item.combinedQty.toFixed(1)).toLocaleString()} ${escapeHTML(item.unit)}</strong>
                         </td>
                         <td>${priceText}</td>
                         <td>${totalPriceText}</td>
@@ -967,6 +1076,7 @@
             const estBudget = parseFloat(document.getElementById('estimated-budget').value) || 0;
             if (estBudget <= 0) { alert('لم يتم تحديد أي أسعار للمكونات لحساب التكلفة الإجمالية والترحيل!'); return; }
 
+            const totalPeople = 1 + state.extraPeople.length;
             if (confirm(`خصم مبلغ التكلفة الإجمالية المحسوبة (${estBudget.toLocaleString()} ج.م) وتسجيله كمصروف في الأساسيات؟`)) {
                 state.transactions.unshift({
                     id: Date.now(),
@@ -974,7 +1084,7 @@
                     type: 'expense',
                     amount: estBudget,
                     category: 'basics',
-                    desc: `مشتريات تغطية طعام لشخصين لعدد (${num(document.getElementById('plan-days').value)}) يوم`
+                    desc: `مشتريات تغطية طعام لـ (${totalPeople}) أشخاص لعدد (${num(document.getElementById('plan-days').value)}) يوم`
                 });
                 await saveState();
                 alert('تم الترحيل بنجاح!');
@@ -1158,6 +1268,7 @@
                 await new Promise(r => { const tx = db.transaction('meals', 'readwrite'); tx.objectStore('meals').clear(); tx.oncomplete = r; });
                 for (const m of meals) await putRecord({ id: m.id, enc: await encryptJSON(m) });
                 await loadMealsFromDB();
+                renderExtraPeople();
                 renderDashboard();
                 renderTransactions();
                 alert('تم استيراد النسخة الاحتياطية بنجاح!');
