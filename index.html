@@ -83,7 +83,7 @@
         .btn-secondary { background: rgba(255,255,255,0.1); color: var(--text-main); }
 
         .recipe-item-row {
-            display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr 40px; gap: 10px; align-items: center;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 40px; gap: 10px; align-items: center;
             background: rgba(15, 23, 42, 0.4); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border-color);
         }
         .saved-meal-card { background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 15px; margin-bottom: 10px; }
@@ -234,7 +234,7 @@
                 <div class="card">
                     <h3><i class="fa-solid fa-utensils" style="color: var(--accent-amber)"></i> إضافة أو تعديل الوجبة والوصفات</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
-                        قم بإدخال اسم الوجبة ومكوناتها يدوياً، وستحفظ الوجبات (مشفّرة) في دليلك الخاص ولن تُحذف عند مسح البيانات المالية.
+                        قم بإدخال اسم الوجبة ومكوناتها يدوياً، مع تحديد كميتك ونسبة الشخص الثاني (%)، وستحفظ الوجبات مشفّرة في دليلك الخاص ولن تُحذف عند مسح البيانات المالية.
                     </p>
 
                     <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); padding: 18px; border-radius: 12px; margin-bottom: 20px;">
@@ -276,7 +276,7 @@
 
             <div id="wizard-step-2" class="wizard-step-panel">
                 <div class="card">
-                    <h3><i class="fa-solid fa-calculator" style="color: var(--accent-blue)"></i> تجميع وحساب الكميات المشتريات والتكلفة</h3>
+                    <h3><i class="fa-solid fa-calculator" style="color: var(--accent-blue)"></i> تجميع وحساب الكميات المشتريات والتكلفة لشخصين</h3>
 
                     <div class="grid-2" style="margin-top: 15px;">
                         <div class="form-group">
@@ -303,7 +303,7 @@
                             <thead>
                                 <tr>
                                     <th>اسم المكون / الوصفة</th>
-                                    <th>إجمالي الكمية المطلوبة للأيام</th>
+                                    <th>الكميات (أنت + الثاني = الإجمالي)</th>
                                     <th>سعر الكيلو / الوحدة</th>
                                     <th>التكلفة التقديرية الإجمالية</th>
                                 </tr>
@@ -569,6 +569,7 @@
                 name: String(r.name ?? '').slice(0, 100),
                 qty: num(r.qty),
                 unit: VALID_UNITS.includes(r.unit) ? r.unit : 'جرام',
+                secondPersonPct: r.secondPersonPct !== undefined ? num(r.secondPersonPct) : 80,
                 unitPrice: num(r.unitPrice)
             })).filter(r => r.name && r.qty > 0) : [];
             return { id: num(m.id) || Date.now(), name: String(m.name ?? '').slice(0, 100), recipes };
@@ -588,7 +589,6 @@
                         const m = sanitizeMeal(await decryptJSON(rec.enc));
                         if (m) out.push(m);
                     } else if (rec.recipes) {
-                        // legacy plaintext record -> migrate to encrypted
                         const m = sanitizeMeal(rec);
                         if (m) { out.push(m); await putRecord({ id: m.id, enc: await encryptJSON(m) }); }
                     }
@@ -776,16 +776,17 @@
         }
 
         // ---------- Meals & recipes ----------
-        function addRecipeRow(name = '', qty = '', unit = 'جرام', unitPrice = '') {
+        function addRecipeRow(name = '', qty = '', unit = 'جرام', unitPrice = '', secondPersonPct = '80') {
             const container = document.getElementById('recipe-inputs-container');
             const rowId = Date.now() + Math.random().toString(36).substring(2, 5);
             const opts = VALID_UNITS.map(u => `<option value="${u}" ${unit === u ? 'selected' : ''}>${u}</option>`).join('');
             const html = `
                 <div class="recipe-item-row" id="row-${rowId}">
                     <input type="text" class="form-control recipe-name" maxlength="100" placeholder="المكون (طماطم، أرز...)" value="${escapeHTML(name)}">
-                    <input type="number" class="form-control recipe-qty" placeholder="الكمية" step="any" value="${escapeHTML(qty)}">
+                    <input type="number" class="form-control recipe-qty" placeholder="كميتك" step="any" value="${escapeHTML(qty)}">
                     <select class="form-control recipe-unit">${opts}</select>
-                    <input type="number" class="form-control recipe-price" placeholder="سعر الكيلو/الوحدة (اختياري)" step="any" value="${escapeHTML(unitPrice)}">
+                    <input type="number" class="form-control recipe-pct" placeholder="نسبة الـ 2 (%)" step="any" value="${escapeHTML(secondPersonPct)}" title="نسبة الشخص الثاني من كميتك">
+                    <input type="number" class="form-control recipe-price" placeholder="سعر الكيلو" step="any" value="${escapeHTML(unitPrice)}">
                     <button class="btn btn-red" onclick="removeRecipeRow('${rowId}')" style="padding: 6px;"><i class="fa-solid fa-trash"></i></button>
                 </div>`;
             container.insertAdjacentHTML('beforeend', html);
@@ -807,8 +808,9 @@
                 const name = row.querySelector('.recipe-name').value.trim();
                 const qty = parseFloat(row.querySelector('.recipe-qty').value) || 0;
                 const unit = row.querySelector('.recipe-unit').value;
+                const secondPersonPct = parseFloat(row.querySelector('.recipe-pct').value) || 0;
                 const unitPrice = parseFloat(row.querySelector('.recipe-price').value) || 0;
-                if (name && qty > 0) recipes.push({ name, qty, unit, unitPrice });
+                if (name && qty > 0) recipes.push({ name, qty, unit, secondPersonPct, unitPrice });
             });
 
             if (recipes.length === 0) { alert('يرجى إضافة وصفة/مكون واحد على الأقل للوجبة!'); return; }
@@ -823,7 +825,7 @@
             document.getElementById('editing-meal-id').value = meal.id;
             document.getElementById('current-meal-name').value = meal.name;
             document.getElementById('recipe-inputs-container').innerHTML = '';
-            meal.recipes.forEach(r => addRecipeRow(r.name, r.qty, r.unit, r.unitPrice || ''));
+            meal.recipes.forEach(r => addRecipeRow(r.name, r.qty, r.unit, r.unitPrice || '', r.secondPersonPct ?? 80));
             document.getElementById('btn-save-meal').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> تحديث الوجبة';
             document.getElementById('btn-cancel-edit').style.display = 'inline-flex';
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -849,8 +851,9 @@
 
             mealsData.forEach((meal, idx) => {
                 const recipesText = meal.recipes.map(r => {
-                    const priceInfo = r.unitPrice > 0 ? ` (سعر الكيلو/الوحدة: ${escapeHTML(r.unitPrice)} ج.م)` : '';
-                    return `${escapeHTML(r.qty)} ${escapeHTML(r.unit)} ${escapeHTML(r.name)}${priceInfo}`;
+                    const pct = r.secondPersonPct ?? 80;
+                    const priceInfo = r.unitPrice > 0 ? ` (سعر الكيلو: ${escapeHTML(r.unitPrice)} ج.م)` : '';
+                    return `${escapeHTML(r.qty)} ${escapeHTML(r.unit)} ${escapeHTML(r.name)} (نسبة الـ 2: ${pct}%)${priceInfo}`;
                 }).join(' ، ');
 
                 container.insertAdjacentHTML('beforeend', `
@@ -892,7 +895,7 @@
             const fullCycles = Math.floor(targetDays / numMeals);
             const extraDays = targetDays % numMeals;
 
-            let infoMessage = `<i class="fa-solid fa-rotate"></i> <strong>نظام التدوير اليومي:</strong> تغطية <strong>${targetDays} يوم</strong> من خلال <strong>${numMeals} وجبة</strong> مضافة.`;
+            let infoMessage = `<i class="fa-solid fa-rotate"></i> <strong>نظام التدوير اليومي لشخصين:</strong> تغطية <strong>${targetDays} يوم</strong> من خلال <strong>${numMeals} وجبة</strong> مضافة.`;
             if (fullCycles > 0) infoMessage += `<br>• تتكرر الـ ${numMeals} وجبة بالكامل <strong>${fullCycles} مرة</strong> (${fullCycles * numMeals} يوم).`;
             if (extraDays > 0) infoMessage += `<br>• ثم تتكرر أول <strong>${extraDays} وجبة</strong> من البداية لتكملة باقي الأيام.`;
             rotationInfo.innerHTML = infoMessage;
@@ -904,8 +907,25 @@
                 const currentMeal = mealsData[day % numMeals];
                 currentMeal.recipes.forEach(rec => {
                     const key = `${rec.name.trim().toLowerCase()}_${rec.unit.trim().toLowerCase()}`;
-                    if (!totals[key]) totals[key] = { displayName: rec.name.trim(), unit: rec.unit, totalQty: 0, unitPrice: rec.unitPrice || 0 };
-                    totals[key].totalQty += parseFloat(rec.qty) || 0;
+                    if (!totals[key]) {
+                        totals[key] = { 
+                            displayName: rec.name.trim(), 
+                            unit: rec.unit, 
+                            totalEslamQty: 0, 
+                            totalSecondQty: 0,
+                            combinedQty: 0,
+                            unitPrice: rec.unitPrice || 0 
+                        };
+                    }
+                    
+                    const eslamDaily = parseFloat(rec.qty) || 0;
+                    const pct = rec.secondPersonPct !== undefined ? parseFloat(rec.secondPersonPct) / 100 : 0.8;
+                    const secondDaily = eslamDaily * pct;
+
+                    totals[key].totalEslamQty += eslamDaily;
+                    totals[key].totalSecondQty += secondDaily;
+                    totals[key].combinedQty += (eslamDaily + secondDaily);
+
                     if (rec.unitPrice > 0) totals[key].unitPrice = rec.unitPrice;
                 });
             }
@@ -915,8 +935,8 @@
                 let itemTotalPrice = 0;
                 if (item.unitPrice > 0) {
                     itemTotalPrice = (item.unit === 'جرام' || item.unit === 'مللي')
-                        ? (item.totalQty / 1000) * item.unitPrice
-                        : item.totalQty * item.unitPrice;
+                        ? (item.combinedQty / 1000) * item.unitPrice
+                        : item.combinedQty * item.unitPrice;
                 }
                 grandTotalPrice += itemTotalPrice;
 
@@ -930,7 +950,11 @@
                 tbody.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td><strong>${escapeHTML(item.displayName)}</strong></td>
-                        <td style="color: var(--accent-amber); font-weight: bold;">${item.totalQty.toLocaleString()} ${escapeHTML(item.unit)}</td>
+                        <td>
+                            <span style="color: var(--accent-blue);">أنت: ${item.totalEslamQty.toLocaleString()}</span> | 
+                            <span style="color: var(--accent-purple);">الثاني: ${item.totalSecondQty.toLocaleString()}</span><br>
+                            <strong style="color: var(--accent-amber);">الإجمالي: ${item.combinedQty.toLocaleString()} ${escapeHTML(item.unit)}</strong>
+                        </td>
                         <td>${priceText}</td>
                         <td>${totalPriceText}</td>
                     </tr>`);
@@ -950,7 +974,7 @@
                     type: 'expense',
                     amount: estBudget,
                     category: 'basics',
-                    desc: `مشتريات تغطية طعام لعدد (${num(document.getElementById('plan-days').value)}) يوم`
+                    desc: `مشتريات تغطية طعام لشخصين لعدد (${num(document.getElementById('plan-days').value)}) يوم`
                 });
                 await saveState();
                 alert('تم الترحيل بنجاح!');
@@ -1086,7 +1110,7 @@
         // ---------- Export / backup ----------
         function csvCell(v) {
             let s = String(v ?? '');
-            if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // منع حقن الصيغ في Excel
+            if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
             return '"' + s.replace(/"/g, '""') + '"';
         }
 
